@@ -1,0 +1,55 @@
+﻿@inject ISessionStorageService _sessionStorage
+@inject ILocalStorageService _localStorage
+@inject NavigationManager _navigationManager
+@inject AuthenticationStateProvider _authenticationStateProvider
+<!-- Navbar -->
+<nav class="main-header navbar navbar-expand-md navbar-light navbar-white">
+    <div class="container">
+        <a href="/" class="navbar-brand">
+            <img src="../../dist/img/sq1-logo.jpg" alt="Blog Post Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+            <span class="brand-text font-weight-light">Blog Posts</span>
+        </a>
+
+        <button class="navbar-toggler order-1" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Right navbar links -->
+        <ul class="order-1 order-md-3 navbar-nav navbar-no-expand ml-auto">
+            <li>
+                <a class="nav-link" href="/user/blogs">
+                    <i class="fas fa-blog"></i> My Blogs
+                </a>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link" data-toggle="dropdown" href="#" aria-expanded="false">
+                    <i class="fas fa-user"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-md dropdown-menu-right" style="left: inherit; right: 0px;">
+                    <AuthorizeView>
+                        <Authorized>
+                            <a href="#" @onclick="@LogOut" class="dropdown-item">
+                                <i class="fas fa-sign-in-alt mr-2"></i> Logout
+                            </a>
+                        </Authorized>
+                        <NotAuthorized>
+                            <a href="/authentication/login" class="dropdown-item">
+                                <i class="fas fa-sign-in-alt mr-2"></i> Login
+                            </a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>
+<!-- /.navbar -->
+
+@code {
+    private async Task LogOut()
+    {
+        await ((CustomAuthonticationStateProvider)_authenticationStateProvider).LogoutUser();
+        await _sessionStorage.RemoveItemAsync(StorageConstants.StoredUser);
+        _navigationManager.NavigateTo("/");
+    }
+}

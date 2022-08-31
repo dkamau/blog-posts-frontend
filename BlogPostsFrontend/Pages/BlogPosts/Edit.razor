@@ -1,0 +1,114 @@
+﻿@page "/user/blogs/write"
+@inject IJSRuntime _jsRuntime
+@inject ISessionStorageService  _sessionStorage
+@inject BlogPostService _blogPostService
+@inject NavigationManager _navigationManager
+@inject ToastService _toastService
+
+<div class="row pb-3 pt-3">
+    <!-- left column -->
+    <div class="col-md-12">
+        <!-- jquery validation -->
+        <div class="card card-outline card-primary">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-blog  mr-2" />
+                    <span>Write Blog</span>
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="maximize">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <a href="user/blogs/" class="btn btn-tool">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- /.card-header -->
+            <!-- form start -->
+            <EditForm Model="@blogPost" OnValidSubmit="@CreateBlogPost">
+                <DataAnnotationsValidator />
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="Name">Title</label>
+                        <InputText @bind-Value="blogPost.Title" class="form-control" placeholder="" />
+                        <ValidationMessage For="@(() => blogPost.Title)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Description">Description</label>
+                        <InputTextArea @bind-Value="blogPost.Description" class="form-control summernote" placeholder="" />
+                        <ValidationMessage For="@(() => blogPost.Description)" />
+                    </div>
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-success btn-block @(loading == true ? "disabled" : "")">
+                                @if (loading)
+                                {
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                }
+                                else
+                                {
+                                    <span>Submit</span>
+                                }
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <a href="user/blogs/" class="btn btn-danger btn-block">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+        <!-- /.card -->
+    </div>
+    <!--/.col (left) -->
+    <!-- right column -->
+    <div class="col-md-6">
+
+    </div>
+    <!--/.col (right) -->
+</div>
+<!-- /.row -->
+
+@code {
+    private CurrentUser loggedInUser = new();
+
+    private bool loading = false;
+    private bool uploadImage = false;
+    private BlogPost blogPost = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await _jsRuntime.InvokeVoidAsync($"createSummerNote");
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (user != null)
+        {
+            loggedInUser = user;
+            blogPost.UserId = user.UserId;
+        }
+    }
+
+    private async Task CreateBlogPost()
+    {
+        loading = true;
+
+        BlogPostHttpResult blogHttpResult;
+
+        blogHttpResult = await _blogPostService.CreateAsync(blogPost);
+
+        if (blogHttpResult.Success)
+        {
+            _navigationManager.NavigateTo("/user/blogs");
+            await _toastService.ShowToastAsync($"{blogPost.Title} has been posted successfully.", ToastType.Success);
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(blogHttpResult.Message, ToastType.Error);
+        }
+
+        loading = false;
+    }
+}

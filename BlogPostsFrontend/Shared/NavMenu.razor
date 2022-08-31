@@ -1,0 +1,74 @@
+﻿@using BlogPostsFrontend.Components
+@using BlogPostsFrontend.Constants
+@inject ISessionStorageService _sessionStorage
+
+<!-- Main Sidebar Container -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="/" class="brand-link">
+        <img src="dist/img/sq1-logo.jpg" alt="Blog Post Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light"><b>Blog</b> Posts</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="image">
+                        <img src="dist/img/avatar.png" class="img-circle elevation-2" alt="User Image">
+                    </div>
+                    <div class="info">
+                        <a href="#" class="d-block">
+                            @loggedInUser.FirstName @loggedInUser.LastName
+                        </a>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <!-- Add icons to the links using the .nav-icon class with font-awesome or any other icon font library -->
+
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                                <i class="nav-icon fas fa-blogging-bag"></i>
+                                <p>
+                                   Continue Blogging
+                                </p>
+                            </NavLink>
+                        </li>
+                        <NavMenuItem LinkTo="user/blogs" Icon="cubes" Label="Blog Posts" />
+                    </Authorized>
+                    <NotAuthorized>
+                        <NavMenuItem LinkTo="authentication/login" Icon="cogs" Label="Please Login" />
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+        </nav>
+        <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+</aside>
+
+
+
+@code {
+
+    private CurrentUser loggedInUser = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var sessionUser = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+        if (sessionUser != null)
+        {
+            loggedInUser = sessionUser;
+        }
+    }
+}

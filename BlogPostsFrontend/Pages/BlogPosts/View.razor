@@ -1,0 +1,61 @@
+﻿@page "/blogs/read"
+@page "/blogs/read/{id:int}"
+@inject BlogPostService _blogPostService;
+@inject ToastService _toastService
+@attribute [AllowAnonymous]
+
+<div class="row pb-3 pt-3">
+    <div class="col-md-8 offset-md-2">
+        <form action="simple-results.html">
+            <div class="input-group">
+                <input type="search" class="form-control form-control-lg" placeholder="Search..." disabled>
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-lg btn-default">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xs-12 col-sm-12">
+        <div class="card card-warning">
+            <div class="card-header">
+                <h3 class="card-title"><b>@blogPost.Title</b></h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" onclick="history.back()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <span> @blogPost.Description</span>
+                <p/>
+                <div>
+                    <span>By <b>@blogPost.Author</b></span>
+                    <small class="float-right">@string.Format("{0:dd-MMM-yyyy HH:mm tt}", blogPost.PublicationDate)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    BlogPost blogPost = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        BlogPostHttpResult blogHttpResult = await _blogPostService.GetAsync(Id);
+
+        if (blogHttpResult.Success)
+            blogPost = blogHttpResult.BlogPost;
+        else
+            await _toastService.ShowToastAsync(blogHttpResult.Message, ToastType.Error);
+    }
+}

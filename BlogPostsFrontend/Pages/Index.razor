@@ -1,0 +1,180 @@
+﻿@page "/"
+@inject JSService _jsService
+@inject ISessionStorageService _sessionStorage;
+@inject ILocalStorageService _localStorage;
+@inject AuthenticationService _authenticationService
+@inject BlogPostService _blogPostService;
+@inject ToastService _toastService
+@inject NavigationManager _navigationManager
+@attribute [AllowAnonymous]
+
+<div class="row pb-3 pt-3">
+    <div class="col-md-8 offset-md-2">
+        <form action="simple-results.html">
+            <div class="row">
+                <div class="col">
+                    <div class="input-group">
+                        <input @bind="searchValue" @bind:event="oninput" @onkeyup="SearchBlogPosts" type="search" class="form-control form-control-lg" placeholder="Search...">
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-lg btn-default">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="form-group clearfix pt-2">
+                        <span>Order By : </span>
+                        <div class="icheck-primary d-inline" @onclick="SortByDateDesc">
+                            <input type="radio" id="radioPrimary1" name="r1" checked="">
+                            <label for="radioPrimary1">
+                                Date Desc 
+                            </label>
+                        </div>
+                        <div class="icheck-primary d-inline" @onclick="SortByDateAsc">
+                            <input type="radio" id="radioPrimary2" name="r1">
+                            <label for="radioPrimary2">
+                                Date Asc
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    @foreach (var blogPost in blogPosts)
+    {
+        <div class="col-md-4 col-sm-6 col-12">
+            <a @onclick="() => ReadMore(blogPost.Id)">
+                <div class="info-box">
+                    <span class="info-box-icon bg-warning"><i class="fas fa-blog"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-number trim-text">@blogPost.Title</span>
+                        <span class="info-box-text trim-text">By @blogPost.Author</span>
+                        <small class="info-box-text trim-text">@string.Format("{0:dd-MMM-yyyy HH:mm tt}", blogPost.PublicationDate)</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+
+
+    @if (loading)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            <div class="col-md-4 col-sm-6 col-12">
+                <div class="info-box">
+                    <span class="info-box-icon bg-warning"><i class="fas fa-blog"></i></span>
+                    <div class="info-box-content">
+                        <span class="info-box-number trim-text">Title...</span>
+                        <small class="info-box-text trim-text">By...</small>
+                        <small class="info-box-text trim-text">Date...</small>
+                    </div>
+                    <div class="overlay lightblue"><i class="fas fa-2x fa-sync-alt fa-spin"></i></div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    CurrentUser loggedInUser = new();
+    private string searchValue;
+    private bool loading = true;
+    List<BlogPost> allBlogPosts = new();
+    List<BlogPost> blogPosts = new();
+    Random random = new Random();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _sessionStorage.GetItemAsync<CurrentUser>(StorageConstants.StoredUser);
+
+        if (user != null)
+        {
+            loggedInUser = user;
+        }
+
+        loading = true;
+
+        try
+        {
+            Task t1 = Task.Run(() => ListBlogPosts());
+
+            await Task.WhenAll(t1);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ListBlogPosts()
+    {
+        BlogPostHttpResult blogPostHttpResult = await _blogPostService.ListAsync();
+
+        if (blogPostHttpResult.Success)
+        {
+            allBlogPosts = blogPostHttpResult.BlogPosts;
+            blogPosts = allBlogPosts;
+        }
+        else
+            await _toastService.ShowToastAsync(blogPostHttpResult.Message, ToastType.Error);
+    }
+
+    private void SearchBlogPosts()
+    {
+        if (string.IsNullOrEmpty(searchValue))
+            blogPosts = allBlogPosts;
+        else
+        {
+            searchValue = searchValue.ToLower();
+            var result = allBlogPosts.Where(n =>
+            n.Title.ToLower().Contains(searchValue) ||
+            n.Description.ToLower().Contains(searchValue)).ToList();
+
+            if (result != null)
+                blogPosts = result;
+        }
+    }
+
+    public void SortByDateDesc()
+    {
+        blogPosts = allBlogPosts.OrderByDescending(n => n.PublicationDate).ToList();
+    }
+
+    public void SortByDateAsc()
+    {
+        blogPosts = allBlogPosts.OrderBy(n => n.PublicationDate).ToList();
+    }
+
+    public void ReadMore(int blogPostId)
+    {
+        _navigationManager.NavigateTo($"/blogs/read/{blogPostId}");
+    }
+
+    public async Task ResendConfirmationEmail()
+    {
+        await DeleteLink();
+        AuthenticationResult authenticationResult = await _authenticationService.ResendConfirmationLink(loggedInUser.Email);
+
+        if (authenticationResult.Success)
+        {
+            await _toastService.ShowToastAsync($"Sent! Please check both your inbox and junk mail for the confirmation link.", ToastType.Info);
+        }
+        else
+        {
+            await _toastService.ShowToastAsync(authenticationResult.Message, ToastType.Error);
+        }
+    }
+
+    public async Task DeleteLink()
+    {
+        await _jsService.RemoveElement($"lnk-resend");
+        await _toastService.ShowToastAsync($"Sending email...", ToastType.Info);
+    }
+}
+
